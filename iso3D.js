@@ -5,12 +5,8 @@ layer = mainComp.layer(layerIndex),
 temp,
 fps = 24,
 isoWidth = 50;
-pointA = [ 1250, 218 ],
-pointB = [ 960, 894 ],
-pointC = [ 389, 84 ],
-pointD = [ 1800, 970 ],
 selectedPoints = [ 0, 0, 0, 0 ]
-test = app.project.item(3).layer("Gray Solid 4").property("Effects").property("Slider Control").property("Slider")
+sliderAngle = layer.property("Effects").property("Slider Control").property("Slider")
 ;
 
 
@@ -26,10 +22,11 @@ var groupSelectionsBot = groupInput.add ("group");
 var selection2 = groupSelectionsBot.add ("checkbox", undefined, "bot left");
 var selection3 = groupSelectionsBot.add ("checkbox", undefined, "bot right");
 
-var groupIcon = groupInput.add("group");
-var current = File($.fileName).path;  
-var iconPath = current + "/icon.jpg"; 
-groupIcon.add ("image", undefined, iconPath);
+var groupPlaneHeight = groupInput.add ("group");
+var planeHeightInput = groupPlaneHeight.add ("statictext", undefined, "plane height:");	
+var inputHeight = groupPlaneHeight.add ("edittext", undefined, "int");
+inputHeight.characters = 3;
+groupPlaneHeight.alignChildren = "left";	
 
 var groupRot = groupInput.add ("group");
 var rotAmount = groupRot.add ("statictext", undefined, "Amount to rot:");	
@@ -37,7 +34,10 @@ var inputRot = groupRot.add ("edittext", undefined, "degrees");
 inputRot.characters = 6;
 groupRot.alignChildren = "center";
 
-
+var groupIcon = groupInput.add("group");
+var current = File($.fileName).path;  
+var iconPath = current + "/icon.jpg"; 
+groupIcon.add ("image", undefined, iconPath);
 
 var groupButtons = windowAEFKR.add ("group");
 groupButtons.alignment = "right";
@@ -72,6 +72,7 @@ function execute()
 					  vertsEnd[2].valueAtTime(startTime,true),
 					  vertsEnd[3].valueAtTime(startTime,true),
 					  ],
+		planeHeight = parseInt(inputHeight.text),
 		rotAmount = parseFloat(inputRot.text)
 		;
 
@@ -94,16 +95,31 @@ function execute()
 				centerPoint = vertsStart[j - 2];
 			}
 
-			var dist = distance(centerPoint, rotPoint),
-				currentAngle = Math.atan2(rotPoint[1] - centerPoint[1], rotPoint[0] - centerPoint[0]) * 180 / Math.PI + 91,
-				isoDist = Math.tan(degreesToRadians(30)) * isoWidth * 2
+			var isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
+				dist = isoDist * planeHeight,
+				currentAngle = sliderAngle.valueAtTime(startTime, fps)
 				;
 
-			for (var i = 1; i <= Math.abs(rotAmount); i++)
+			if (inputRot > 0)
+			{
+				currentAngle += 1;
+			}
+			else
+			{
+				currentAngle -= 1;
+			}
+
+			//alert (dist);
+
+			for (var i = 1; i <= Math.abs(rotAmount) + 2; i++)
 			{
 				if (currentAngle >= 360)
 				{
-					currentAngle = 0;
+					currentAngle = currentAngle - 360;
+				}
+				else if (currentAngle < 0)
+				{
+					currentAngle = 360 + currentAngle;
 				}
 
 				var newCenterPoint,
@@ -111,8 +127,8 @@ function execute()
 					rotationValues
 					;
 
-				rotationValues = rotatePoint(currentAngle, centerPoint, dist, isoDist, isoWidth, direction); // incomplete
-				test.setValueAtTime(convertFPSToTime(startFrame + i, fps), rotationValues[1]);
+				rotationValues = rotatePoint(currentAngle, centerPoint, dist, isoDist, isoWidth, direction, planeHeight); // incomplete
+				sliderAngle.setValueAtTime(convertFPSToTime(startFrame + i, fps), currentAngle);
 				vertsEnd[j].setValueAtTime(convertFPSToTime(startFrame + i, fps),rotateAroundPoint(0, rotationValues[0], dist, rotationValues[1], rotationValues[2]));
 
 				if (rotAmount > 0)
@@ -145,7 +161,7 @@ function convertFPSToTime(frame, targetFPS)
 	return convertedFPS;
 }
 
-function rotateAroundPoint(direction, _centerPoint, dist, _currentAngle,_mult)
+function rotateAroundPoint(direction, _centerPoint, _dist, _currentAngle,_mult)
 {
 	var endLocation = [ 0 , 0 ],
 		_rotPoint = [ 0 , 0 ]
@@ -153,8 +169,8 @@ function rotateAroundPoint(direction, _centerPoint, dist, _currentAngle,_mult)
 
 	_currentAngle = degreesToRadians((_currentAngle - 90));
 	
-	_rotPoint[0] = _centerPoint[0] + (Math.cos(_currentAngle) * (dist * _mult));
-	_rotPoint[1] = _centerPoint[1] + (Math.sin(_currentAngle) * (dist * _mult));
+	_rotPoint[0] = _centerPoint[0] + (Math.cos(_currentAngle) * (_dist * _mult));
+	_rotPoint[1] = _centerPoint[1] + (Math.sin(_currentAngle) * (_dist * _mult));
 
 	return _rotPoint;
 }
@@ -172,6 +188,7 @@ function reprojectAngle(angle, min, max, _in, _out)
 		returnInterpolated
 		;
 
+	angle = angle;
 	alpha = (angle - min) / (max - min);
 
 	returnInterpolated  = _in + (alpha * (_out - _in));
@@ -184,7 +201,7 @@ function degreesToRadians(degrees)
 	return returnRadians;
 }
 
-function rotatePoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, axis)
+function rotatePoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, axis, _planeHeight)
 {
 	var limitsX = [ [ -30, 90 ], [ 90, 150 ], [ 150, 270 ], [ 270, 330 ] ],
 		limitsY = [ [ -30, 90 ], [ 90, 150 ], [ 150, 270 ], [ 270, 330 ] ],
@@ -201,10 +218,10 @@ function rotatePoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, ax
 
 	if (_currentAngle < 90)
 	{
-		// newCurrentAngle = currentAngle - 15;
+		// returnAngle = currentAngle - 15;
 		returnAngle = reprojectAngle(_currentAngle, 0, 90, angleLimits[axis][0][0], angleLimits[axis][0][1]);
 		returnMult = multipliersXYZ[axis][0];
-		returnCenterPoint[0] = _centerPoint[0] + (((_dist / _isoDist) * _isoWidth) / 3) - (_dist / _isoDist);
+		returnCenterPoint[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (1 * _planeHeight);
 		returnCenterPoint[1] = _centerPoint[1] - _dist / 2;
 	}
 	else if (_currentAngle >= 90 && _currentAngle < 180)
@@ -212,7 +229,7 @@ function rotatePoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, ax
 		// newCurrentAngle = currentAngle - 90;
 		returnAngle = reprojectAngle(_currentAngle, 90, 180, angleLimits[axis][1][0], angleLimits[axis][1][1]);						
 		returnMult = multipliersXYZ[axis][1];
-		returnCenterPoint[0] = _centerPoint[0] - (_dist / _isoDist) * _isoWidth - (_dist / _isoDist);
+		returnCenterPoint[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)); //- (1 * _planeHeight);
 		returnCenterPoint[1] = _centerPoint[1] - _dist / 2;
 		
 	}
@@ -220,14 +237,14 @@ function rotatePoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, ax
 	{
 		returnAngle = reprojectAngle(_currentAngle, 180, 270, angleLimits[axis][2][0], angleLimits[axis][2][1]);
 		returnMult = multipliersXYZ[axis][2];
-		returnCenterPoint[0] = _centerPoint[0] - (((_dist / _isoDist) * _isoWidth) / 3) - (_dist / _isoDist);
-		returnCenterPoint[1] = _centerPoint[1] + _dist / 2;	
+		returnCenterPoint[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (.5 * _planeHeight);
+		returnCenterPoint[1] = _centerPoint[1] + _dist / 2 - (.5 * _planeHeight);	
 	}
 	else if (_currentAngle >= 270 && _currentAngle < 360)					
 	{
 		returnAngle = reprojectAngle(_currentAngle, 270, 360, angleLimits[axis][3][0], angleLimits[axis][3][1]);
 		returnMult = multipliersXYZ[axis][3];
-		returnCenterPoint[0] = _centerPoint[0] + (_dist / _isoDist) * _isoWidth;
+		returnCenterPoint[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)) + (.5 * _planeHeight);
 		returnCenterPoint[1] = _centerPoint[1] + _dist / 2;					
 	}
 
