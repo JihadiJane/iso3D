@@ -10,6 +10,7 @@ pointB = [ 960, 894 ],
 pointC = [ 389, 84 ],
 pointD = [ 1800, 970 ],
 selectedPoints = [ 0, 0, 0, 0 ]
+test = app.project.item(3).layer("Gray Solid 4").property("Effects").property("Slider Control").property("Slider")
 ;
 
 
@@ -58,18 +59,18 @@ function execute()
 	selectedPoints[2] = selection2.value;
 	selectedPoints[3] = selection3.value;
 
-	var currentTime = mainComp.time,
-		currentFrame = convertTimeToFPS(currentTime, fps),
+	var startTime = mainComp.time,
+		startFrame = convertTimeToFPS(startTime, fps),
 		direction = 1,
 		vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
 					layer.property("Effects").property("Corner Pin").property("Upper Right"),
 					layer.property("Effects").property("Corner Pin").property("Lower Left"),
 					layer.property("Effects").property("Corner Pin").property("Lower Right"),
 					],
-		vertsStart = [vertsEnd[0].valueAtTime(currentTime,true), 
-					  vertsEnd[1].valueAtTime(currentTime,true),
-					  vertsEnd[2].valueAtTime(currentTime,true),
-					  vertsEnd[3].valueAtTime(currentTime,true),
+		vertsStart = [vertsEnd[0].valueAtTime(startTime,true), 
+					  vertsEnd[1].valueAtTime(startTime,true),
+					  vertsEnd[2].valueAtTime(startTime,true),
+					  vertsEnd[3].valueAtTime(startTime,true),
 					  ],
 		rotAmount = parseFloat(inputRot.text)
 		;
@@ -94,13 +95,13 @@ function execute()
 			}
 
 			var dist = distance(centerPoint, rotPoint),
-				currentAngle = Math.atan2(rotPoint[1] - centerPoint[1], rotPoint[0] - centerPoint[0]) * 180 / Math.PI + 90,
+				currentAngle = Math.atan2(rotPoint[1] - centerPoint[1], rotPoint[0] - centerPoint[0]) * 180 / Math.PI + 91,
 				isoDist = Math.tan(degreesToRadians(30)) * isoWidth * 2
 				;
 
-			for (var i = 0; i <= Math.abs(rotAmount); i++)
+			for (var i = 1; i <= Math.abs(rotAmount); i++)
 			{
-				if (currentAngle > 360)
+				if (currentAngle >= 360)
 				{
 					currentAngle = 0;
 				}
@@ -111,8 +112,8 @@ function execute()
 					;
 
 				rotationValues = rotatePoint(currentAngle, centerPoint, dist, isoDist, isoWidth, direction); // incomplete
-
-				vertsEnd[j].setValueAtTime(convertFPSToTime(currentFrame + i, fps),rotateAroundPoint(0, rotationValues[0], dist, 0, rotationValues[1], rotationValues[2]));
+				test.setValueAtTime(convertFPSToTime(startFrame + i, fps), rotationValues[1]);
+				vertsEnd[j].setValueAtTime(convertFPSToTime(startFrame + i, fps),rotateAroundPoint(0, rotationValues[0], dist, rotationValues[1], rotationValues[2]));
 
 				if (rotAmount > 0)
 				{
@@ -144,7 +145,7 @@ function convertFPSToTime(frame, targetFPS)
 	return convertedFPS;
 }
 
-function rotateAroundPoint(direction, _centerPoint, dist, startAngle, _currentAngle,_mult)
+function rotateAroundPoint(direction, _centerPoint, dist, _currentAngle,_mult)
 {
 	var endLocation = [ 0 , 0 ],
 		_rotPoint = [ 0 , 0 ]
@@ -229,6 +230,8 @@ function rotatePoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, ax
 		returnCenterPoint[0] = _centerPoint[0] + (_dist / _isoDist) * _isoWidth;
 		returnCenterPoint[1] = _centerPoint[1] + _dist / 2;					
 	}
+
+	//alert(returnAngle);
 
 	var returns = [ returnCenterPoint, returnAngle, returnMult ];
 	return returns;
