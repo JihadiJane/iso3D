@@ -79,6 +79,11 @@ function execute()
 		currentAngle = sliderAngle.valueAtTime(startTime, fps)
 		;
 
+	for(var i = 0; i < 4; i++)
+	{
+		vertsEnd[i].setValueAtTime(convertFPSToTime(startFrame, fps),vertsStart[i]);
+	}
+
 	sortedPointsY.sort(function(a, b){return a - b});
 	switch (direction) // set plane to direction
 	{
@@ -110,15 +115,15 @@ function execute()
 			}
 			else if (currentAngle == 180)
 			{
-				rotPoints[0][1] = sortedPointsY[1];
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-				centerPoints[0][1] = maxY;				
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
+				centerPoints[0][1] = sortedPointsY[1];
+				centerPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
+				rotPoints[0][1] = maxY;				
+				rotPoints[0][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
 
-				rotPoints[1][1] = minY;
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(minY, unsortedPointsY)];
-				centerPoints[1][1] = sortedPointsY[2];				
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[2], unsortedPointsY)];				
+				centerPoints[1][1] = minY;
+				centerPoints[1][0] = unsortedPointsX[indexOfItem(minY, unsortedPointsY)];
+				rotPoints[1][1] = sortedPointsY[2];				
+				rotPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[2], unsortedPointsY)];				
 			}
 			else if (currentAngle == 270)
 			{
@@ -151,8 +156,8 @@ function execute()
 			{
 				rotPoints[0][1] = minY;
 				rotPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				centerPoints[1][0] = minX;
-				centerPoints[1][1] = unsortedPointsY[indexOfItem(minX,unsortedPointsX)];
+				centerPoints[0][0] = minX;
+				centerPoints[0][1] = unsortedPointsY[indexOfItem(minX,unsortedPointsX)];
 
 				rotPoints[1][1] = unsortedPointsY[indexOfItem(maxX,unsortedPointsX)];
 				rotPoints[1][0] = maxX;
@@ -175,11 +180,11 @@ function execute()
 			{
 				centerPoints[0][1] = minY;
 				centerPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				rotPoints[0][1] = sortedPointsY[2];				
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[2], unsortedPointsY)];
+				rotPoints[0][1] = unsortedPointsY[indexOfItem(minX, unsortedPointsX)];				
+				rotPoints[0][0] = minX;
 
-				centerPoints[1][1] = sortedPointsY[1];
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
+				centerPoints[1][0] = maxX;
+				centerPoints[1][1] = unsortedPointsY[indexOfItem(maxX,unsortedPointsX)];
 				rotPoints[1][1] = maxY;				
 				rotPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
 			}
@@ -208,8 +213,8 @@ function execute()
 				rotPoints[1][1] = minY;
 				rotPoints[1][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
 				centerPoints[1][1] = sortedPointsY[1];
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsX)];
-
+				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
+				alert(centerPoints[1]);
 			}
 			else if (currentAngle == 180)
 			{
@@ -225,20 +230,20 @@ function execute()
 			}
 			else if (currentAngle == 270)
 			{
-				rotPoints[0][1] = minY;
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				centerPoints[0][1] = sortedPointsY[2];				
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[2], unsortedPointsY)];
+				centerPoints[0][1] = minY;
+				centerPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
+				rotPoints[0][1] = sortedPointsY[1];				
+				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[1], unsortedPointsY)];
 
-				rotPoints[1][1] = sortedPointsY[1];
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-				centerPoints[1][1] = maxY;				
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
+				centerPoints[1][1] = sortedPointsY[2];
+				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[2],unsortedPointsY)];
+				rotPoints[1][1] = maxY;				
+				rotPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
 			}
 		break;
 	}
 
-	if (rotAmount > 0) 	// fix this: changes the angle before the loop, needs to be exact value
+	if (rotAmount > 0) 	
 	{
 		currentAngle += 1;
 	}
@@ -247,10 +252,6 @@ function execute()
 		currentAngle -= 1;
 	}
 
-	if (currentAngle == 20)	// fix this: put this in the loop and check if 0 happens, try with other # to make sure it works
-	{
-		alert(currentAngle);
-	}
 	for (var j = 0; j < 2; j++)
 	{
 
@@ -263,11 +264,13 @@ function execute()
 
 		for (var i = 1; i <= Math.abs(rotAmount); i++)
 		{
-			var rotationValues;
 
-			rotationValues = moveCenterPoint(newCurrentAngle, centerPoints[j], dist, isoDist, isoWidth, direction, planeHeight, direction);
-			//if (j == 1) {alert(rotationValues[0]);}
-			if (newCurrentAngle >= 360)
+			var rotationValues,
+				rotIndex,
+				rotCheck = [ indexOfItem(rotPoint[0], unsortedPointsX), indexOfItem(rotPoint[1], unsortedPointsY) ] 				// fix this: check for the X and Y
+			;
+
+			if (newCurrentAngle > 360)
 			{
 				newCurrentAngle = newCurrentAngle - 360;
 			}
@@ -275,23 +278,33 @@ function execute()
 			{
 				newCurrentAngle = 360 + newCurrentAngle;
 			}
+			else if (newCurrentAngle == 360)
+			{
+				newCurrentAngle = 0;
+			}
+
+			if (rotCheck[0] == rotCheck[1])
+			{
+				rotIndex = rotCheck[0];
+			}
+			else if (countInArray(rotPoint[0], unsortedPointsX) == 2)
+			{
+				rotIndex = rotCheck[1];
+			}
+			else if (countInArray(rotPoint[1], unsortedPointsY) == 2)
+			{
+				rotIndex = rotCheck[0];
+			}
+
+			//if (j == 1) {alert(centerPoints);}
+
+			rotationValues = moveCenterPoint(newCurrentAngle, centerPoints[j], dist, isoDist, isoWidth, direction, planeHeight, direction);
 
 			sliderAngle.setValueAtTime(convertFPSToTime(startFrame + i, fps), newCurrentAngle);
+			var tempRot = setRotPoints(0, rotationValues[0], dist, rotationValues[1], rotationValues[2])
+		
 
-
-			// var rotIndex,
-			// 	rotCheck = [ indexOfItem(rotPoint[0], unsortedPointsX)				// fix this: check for the X and Y
-			// ;
-			// if (indexOfItem(rotPoint[0], unsortedPointsX) == indexOfItem(rotPoint[1], unsortedPointsY))
-			// {
-			// 	rotIndex = indexOfItem(rotPoint[0], unsortedPointsX);
-			// }
-			// else 
-			// {
-			// 	rotIndex = indexOfItem(rotPoint, unsortedPoints);
-			// }
-
-			vertsEnd[indexOfItem(rotPoint, vertsStart)].setValueAtTime(convertFPSToTime(startFrame + i, fps),setRotPoints(0, rotationValues[0], dist, rotationValues[1], rotationValues[2]));
+			vertsEnd[rotIndex].setValueAtTime(convertFPSToTime(startFrame + i, fps),tempRot);
 
 			if (rotAmount > 0)
 			{
@@ -325,13 +338,14 @@ function convertFPSToTime(frame, targetFPS)
 function setRotPoints(direction, _centerPoint, _dist, _currentAngle,_mult)
 {
 	var endLocation = [ 0 , 0 ],
-		_rotPoint = [ 0 , 0 ]
+		_rotPoint = [ 0 , 0 ],
+		_newCurrentAngle
 		;
 
-	_currentAngle = degreesToRadians((_currentAngle - 90));
+	_newCurrentAngle = degreesToRadians((_currentAngle - 90));
 	
-	_rotPoint[0] = _centerPoint[0] + (Math.cos(_currentAngle) * (_dist * _mult));
-	_rotPoint[1] = _centerPoint[1] + (Math.sin(_currentAngle) * (_dist * _mult));
+	_rotPoint[0] = _centerPoint[0] + (Math.cos(_newCurrentAngle) * (_dist * _mult));
+	_rotPoint[1] = _centerPoint[1] + (Math.sin(_newCurrentAngle) * (_dist * _mult));
 
 	return _rotPoint;
 }
@@ -447,7 +461,6 @@ function moveCenterPoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth
 			break;
 				
 		}		
-		//alert(returnCenterPoint);
 	}
 	else if (_currentAngle >= 270 && _currentAngle < 360)					
 	{
@@ -474,6 +487,8 @@ function moveCenterPoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth
 				
 	}
 
+	
+
 	var returns = [ returnCenterPoint, returnAngle, returnMult ];
 	return returns;
 }
@@ -488,4 +503,14 @@ function indexOfItem(item, array)
 		}
 	}
 	return null;
+}
+
+function countInArray(elem, array) {
+    var count = 0;
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] == elem) {
+            count++;
+        }
+    }
+    return count;
 }
