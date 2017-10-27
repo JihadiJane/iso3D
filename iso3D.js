@@ -62,34 +62,42 @@ function execute()
 					  vertsEnd[2].valueAtTime(startTime,true),
 					  vertsEnd[3].valueAtTime(startTime,true),
 					  ],
+		fixedVerts = descritizeVerts(vertsStart, isoDist, isoWidth),
 		planeHeight = parseInt(inputHeight.text),
 		rotAmount = parseFloat(inputRot.text),
-		newPointValuesX = [vertsStart[0][0], vertsStart[1][0], vertsStart[2][0], vertsStart[3][0]],
-		newPointValuesY = [vertsStart[0][1], vertsStart[1][1], vertsStart[2][1], vertsStart[3][1]],
+		newPointValuesX = [fixedVerts[0][0], fixedVerts[1][0], fixedVerts[2][0], vertsStart[3][0]],
+		newPointValuesY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], vertsStart[3][1]],
+		unsortedPoints = [fixedVerts[0], fixedVerts[1], fixedVerts[2], fixedVerts[3]]
+		unsortedPointsX = [fixedVerts[0][0], fixedVerts[1][0], fixedVerts[2][0], fixedVerts[3][0]],
+		unsortedPointsY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], fixedVerts[3][1]],
 		sortedPointsY = newPointValuesY,
-		unsortedPoints = [vertsStart[0], vertsStart[1], vertsStart[2], vertsStart[3]]
-		unsortedPointsX = [vertsStart[0][0], vertsStart[1][0], vertsStart[2][0], vertsStart[3][0]],
-		unsortedPointsY = [vertsStart[0][1], vertsStart[1][1], vertsStart[2][1], vertsStart[3][1]],
 		maxX = Math.max(newPointValuesX[0], newPointValuesX[1], newPointValuesX[2], newPointValuesX[3]),
 		maxY = Math.max(newPointValuesY[0], newPointValuesY[1], newPointValuesY[2], newPointValuesY[3]),
 		minX = Math.min(newPointValuesX[0], newPointValuesX[1], newPointValuesX[2], newPointValuesX[3]),
 		minY = Math.min(newPointValuesY[0], newPointValuesY[1], newPointValuesY[2], newPointValuesY[3]),
 		centerPoints = [[ 0, 0 ], [ 0, 0 ]],
 		rotPoints = [[ 0, 0 ], [ 0, 0 ]],
-		currentAngle = sliderAngle.valueAtTime(startTime, fps)
+		currentAngle = sliderAngle.valueAtTime(startTime, fps),
+		isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
+		dist = isoDist * planeHeight
 		;
 
-	for(var i = 0; i < 4; i++)
+	
+
+	for (var i = 0; i < 4; i++)
 	{
-		vertsEnd[i].setValueAtTime(convertFPSToTime(startFrame, fps),vertsStart[i]);
+		vertsEnd[i].setValueAtTime(convertFPSToTime(startFrame, fps), fixedVerts[i]);		
 	}
 
+	sliderAngle.setValueAtTime(convertFPSToTime(startFrame, fps), currentAngle);
+	//sortedPointsY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], vertsStart[3][1]];
 	sortedPointsY.sort(function(a, b){return a - b});
-	switch (direction) // set plane to direction
+		
+	switch (direction) 													// set plane to direction
 	{
 
 		case 0: // X
-			if (currentAngle == 0)
+			if (currentAngle >= 0 && currentAngle < 90)
 			{
 				rotPoints[0][1] = sortedPointsY[1];
 				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
@@ -140,7 +148,7 @@ function execute()
 		break;
 
 		case 1: // Y			
-			if (currentAngle == 0)
+			if (currentAngle >= 0 && currentAngle < 90)
 			{
 				rotPoints[0][1] = minY;
 				rotPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
@@ -151,6 +159,11 @@ function execute()
 				rotPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
 				centerPoints[1][1] = maxY;				
 				centerPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
+				alert(sortedPointsY);
+				alert(unsortedPointsY);
+				alert(indexOfItem(sortedPointsY[1],unsortedPointsY));
+				// alert(unsortedPointsY);
+
 			}
 			else if (currentAngle == 90)
 			{
@@ -214,7 +227,6 @@ function execute()
 				rotPoints[1][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
 				centerPoints[1][1] = sortedPointsY[1];
 				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-				alert(centerPoints[1]);
 			}
 			else if (currentAngle == 180)
 			{
@@ -257,11 +269,10 @@ function execute()
 
 		var centerPoint = [ centerPoints[j][0], centerPoints[j][1] ],	// fill this
 			rotPoint = [ rotPoints[j][0], rotPoints[j][1] ],	// fill this
-			isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
-			dist = isoDist * planeHeight,
 			newCurrentAngle = currentAngle
 			;
 
+		
 		for (var i = 1; i <= Math.abs(rotAmount); i++)
 		{
 
@@ -303,7 +314,7 @@ function execute()
 			sliderAngle.setValueAtTime(convertFPSToTime(startFrame + i, fps), newCurrentAngle);
 			var tempRot = setRotPoints(0, rotationValues[0], dist, rotationValues[1], rotationValues[2])
 		
-
+			
 			vertsEnd[rotIndex].setValueAtTime(convertFPSToTime(startFrame + i, fps),tempRot);
 
 			if (rotAmount > 0)
@@ -497,7 +508,7 @@ function indexOfItem(item, array)
 {
 	for (var i = 0; i < array.length; i++)
 	{
-		if (parseFloat(item) == parseFloat(array[i]))
+		if (Math.abs(parseFloat(item) - parseFloat(array[i])) < 3)
 		{
 			return i;
 		}
@@ -505,7 +516,8 @@ function indexOfItem(item, array)
 	return null;
 }
 
-function countInArray(elem, array) {
+function countInArray(elem, array) 
+{
     var count = 0;
     for (var i = 0; i < array.length; i++) {
         if (array[i] == elem) {
@@ -513,4 +525,35 @@ function countInArray(elem, array) {
         }
     }
     return count;
+}
+
+function descritizeVerts(verts, _isoDist, _isoWidth)
+{
+	var returnVerts = [ ];
+
+	for(var i = 0; i < 4; i++)
+	{
+		var discreteVert = [ verts[i][0], verts[i][1] ]
+		
+		if ((discreteVert[0] % (_isoWidth / 2)) > _isoWidth / 4)
+		{
+			discreteVert[0] = discreteVert[0] - (discreteVert[0] % (_isoWidth / 2)) + (_isoWidth / 2);
+		}
+		else if ((discreteVert[0] % (_isoWidth / 2)) < _isoWidth / 4)
+		{
+			discreteVert[0] = verts[i][0] - (verts[i][0] % (_isoWidth / 2));
+		}
+
+		if ((discreteVert[1] % (_isoDist)) > _isoDist / 2)
+		{
+			discreteVert[1] = discreteVert[1] - (discreteVert[1] % (_isoDist)) + (_isoDist);
+		}
+		else if ((discreteVert[1] % (_isoDist)) < _isoDist / 2)
+		{
+			discreteVert[1] = verts[i][1] - (verts[i][1] % (_isoDist));
+		}	
+		
+		returnVerts.push(discreteVert);
+	}
+	return returnVerts;
 }
