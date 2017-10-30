@@ -5,9 +5,10 @@ layer = mainComp.layer(layerIndex),
 temp,
 fps = 24,
 isoWidth = 50,
-sliderAngle = layer.property("Effects").property("Slider Control").property("Slider")
+isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
+sliderAngle = layer.property("Effects").property("Slider Control").property("Slider"),
+timeControl = layer.property("Effects").property("Point Control").property("Point")
 ;
-
 
 var windowAEFKR = new Window ("dialog", "AEFKR"); 											// create window
 
@@ -62,14 +63,27 @@ function execute()
 					  vertsEnd[2].valueAtTime(startTime,true),
 					  vertsEnd[3].valueAtTime(startTime,true),
 					  ],
-		fixedVerts = descritizeVerts(vertsStart, isoDist, isoWidth),
 		planeHeight = parseInt(inputHeight.text),
 		rotAmount = parseFloat(inputRot.text),
-		newPointValuesX = [fixedVerts[0][0], fixedVerts[1][0], fixedVerts[2][0], vertsStart[3][0]],
-		newPointValuesY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], vertsStart[3][1]],
-		unsortedPoints = [fixedVerts[0], fixedVerts[1], fixedVerts[2], fixedVerts[3]]
+		currentAngle = sliderAngle.valueAtTime(startTime, fps),
+		fixedVerts
+		;
+
+	if (currentAngle == 0 || currentAngle == 90 || currentAngle == 180 || currentAngle == 270 || currentAngle == 360) 
+		{
+			fixedVerts = descritizeVerts(vertsStart, isoDist, isoWidth);
+		}
+	else 
+		{
+			fixedVerts = vertsStart;
+		}
+
+	var newPointValuesX = [fixedVerts[0][0], fixedVerts[1][0], fixedVerts[2][0], fixedVerts[3][0]],
+		newPointValuesY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], fixedVerts[3][1]],
+		unsortedPoints = [fixedVerts[0], fixedVerts[1], fixedVerts[2], fixedVerts[3]],
 		unsortedPointsX = [fixedVerts[0][0], fixedVerts[1][0], fixedVerts[2][0], fixedVerts[3][0]],
 		unsortedPointsY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], fixedVerts[3][1]],
+		sortedPointsX = newPointValuesX,
 		sortedPointsY = newPointValuesY,
 		maxX = Math.max(newPointValuesX[0], newPointValuesX[1], newPointValuesX[2], newPointValuesX[3]),
 		maxY = Math.max(newPointValuesY[0], newPointValuesY[1], newPointValuesY[2], newPointValuesY[3]),
@@ -77,12 +91,13 @@ function execute()
 		minY = Math.min(newPointValuesY[0], newPointValuesY[1], newPointValuesY[2], newPointValuesY[3]),
 		centerPoints = [[ 0, 0 ], [ 0, 0 ]],
 		rotPoints = [[ 0, 0 ], [ 0, 0 ]],
-		currentAngle = sliderAngle.valueAtTime(startTime, fps),
-		isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
-		dist = isoDist * planeHeight
+		newCenterPoints = [[ 0, 0 ], [ 0, 0 ]],
+		newRotPoints = [[ 0, 0 ], [ 0, 0 ]],
+		tempPoints,
+		remapTime = timeControl.valueAtTime(startTime, fps),
+		dist = isoDist * planeHeight,
+		points
 		;
-
-	
 
 	for (var i = 0; i < 4; i++)
 	{
@@ -90,241 +105,61 @@ function execute()
 	}
 
 	sliderAngle.setValueAtTime(convertFPSToTime(startFrame, fps), currentAngle);
-	//sortedPointsY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], vertsStart[3][1]];
+	sortedPointsX.sort(function(a, b){return a - b});
 	sortedPointsY.sort(function(a, b){return a - b});
-		
-	switch (direction) 													// set plane to direction
+
+	if (currentAngle == 0 || currentAngle == 90 || currentAngle == 180 || currentAngle == 270 || currentAngle == 360)
 	{
-
-		case 0: // X
-			if (currentAngle >= 0 && currentAngle < 90)
-			{
-				rotPoints[0][1] = sortedPointsY[1];
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-				centerPoints[0][1] = maxY;				
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-
-				rotPoints[1][1] = sortedPointsY[0];
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[0], unsortedPointsY)];
-				centerPoints[1][1] = sortedPointsY[2];				
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[2], unsortedPointsY)];
-			}
-			else if (currentAngle == 90)
-			{
-				rotPoints[0][1] = maxY;
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(maxY,unsortedPointsY)];
-				centerPoints[0][0] = minX;
-				centerPoints[0][1] = unsortedPointsY[indexOfItem(minX,unsortedPointsX)];
-
-				rotPoints[1][1] = unsortedPointsY[indexOfItem(maxX,unsortedPointsX)];
-				rotPoints[1][0] = maxX;
-				centerPoints[1][1] = minY;				
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(minY, unsortedPointsY)];
-			}
-			else if (currentAngle == 180)
-			{
-				centerPoints[0][1] = sortedPointsY[1];
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-				rotPoints[0][1] = maxY;				
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-
-				centerPoints[1][1] = minY;
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(minY, unsortedPointsY)];
-				rotPoints[1][1] = sortedPointsY[2];				
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[2], unsortedPointsY)];				
-			}
-			else if (currentAngle == 270)
-			{
-				centerPoints[0][1] = maxY;
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(maxY,unsortedPointsY)];
-				rotPoints[0][0] = minX;
-				rotPoints[0][1] = unsortedPointsY[indexOfItem(minX,unsortedPointsX)];
-
-				centerPoints[1][1] = unsortedPointsY[indexOfItem(maxX,unsortedPointsX)];
-				centerPoints[1][0] = maxX;
-				rotPoints[1][1] = minY;				
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(minY, unsortedPointsY)];
-			}
-		break;
-
-		case 1: // Y			
-			if (currentAngle >= 0 && currentAngle < 90)
-			{
-				rotPoints[0][1] = minY;
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				centerPoints[0][1] = sortedPointsY[2];				
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[2], unsortedPointsY)];
-
-				rotPoints[1][1] = sortedPointsY[1];
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-				centerPoints[1][1] = maxY;				
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-				alert(sortedPointsY);
-				alert(unsortedPointsY);
-				alert(indexOfItem(sortedPointsY[1],unsortedPointsY));
-				// alert(unsortedPointsY);
-
-			}
-			else if (currentAngle == 90)
-			{
-				rotPoints[0][1] = minY;
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				centerPoints[0][0] = minX;
-				centerPoints[0][1] = unsortedPointsY[indexOfItem(minX,unsortedPointsX)];
-
-				rotPoints[1][1] = unsortedPointsY[indexOfItem(maxX,unsortedPointsX)];
-				rotPoints[1][0] = maxX;
-				centerPoints[1][1] = maxY;				
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-			}
-			else if (currentAngle == 180)
-			{
-				centerPoints[0][1] = minY;
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[2],unsortedPointsY)];
-				rotPoints[0][1] = sortedPointsY[2];
-
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-				centerPoints[1][1] = sortedPointsY[1];
-				rotPoints[1][1] = maxY;				
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];	
-			}
-			else if (currentAngle == 270)
-			{
-				centerPoints[0][1] = minY;
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				rotPoints[0][1] = unsortedPointsY[indexOfItem(minX, unsortedPointsX)];				
-				rotPoints[0][0] = minX;
-
-				centerPoints[1][0] = maxX;
-				centerPoints[1][1] = unsortedPointsY[indexOfItem(maxX,unsortedPointsX)];
-				rotPoints[1][1] = maxY;				
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-			}
-		break;
-
-		case 2:	// Z		
-			if (currentAngle == 0)
-			{
-				rotPoints[0][1] = sortedPointsY[2];
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[2],unsortedPointsY)];
-				centerPoints[0][1] = maxY;				
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-
-				rotPoints[1][1] = minY;
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				centerPoints[1][1] = sortedPointsY[1];				
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1], unsortedPointsY)];
-			}
-			else if (currentAngle == 90)
-			{
-				rotPoints[0][1] = sortedPointsY[2];
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[2],unsortedPointsY)];
-				centerPoints[0][1] = maxY;
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-
-				rotPoints[1][1] = minY;
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				centerPoints[1][1] = sortedPointsY[1];
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1],unsortedPointsY)];
-			}
-			else if (currentAngle == 180)
-			{
-				centerPoints[0][1] = sortedPointsY[2];
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[2],unsortedPointsY)];
-				rotPoints[0][1] = maxY;				
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-
-				centerPoints[1][1] = minY;
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				rotPoints[1][1] = sortedPointsY[1];				
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[1], unsortedPointsY)];			
-			}
-			else if (currentAngle == 270)
-			{
-				centerPoints[0][1] = minY;
-				centerPoints[0][0] = unsortedPointsX[indexOfItem(minY,unsortedPointsY)];
-				rotPoints[0][1] = sortedPointsY[1];				
-				rotPoints[0][0] = unsortedPointsX[indexOfItem(sortedPointsY[1], unsortedPointsY)];
-
-				centerPoints[1][1] = sortedPointsY[2];
-				centerPoints[1][0] = unsortedPointsX[indexOfItem(sortedPointsY[2],unsortedPointsY)];
-				rotPoints[1][1] = maxY;				
-				rotPoints[1][0] = unsortedPointsX[indexOfItem(maxY, unsortedPointsY)];
-			}
-		break;
-	}
-
-	if (rotAmount > 0) 	
-	{
-		currentAngle += 1;
+		points = assignRotAndCenterPoints(direction, currentAngle, vertsEnd, centerPoints, rotPoints, sortedPointsX, sortedPointsY, unsortedPointsX, unsortedPointsY, planeHeight, i, startFrame, fps);		
 	}
 	else
 	{
-		currentAngle -= 1;
+		points = vertsStart;
 	}
+	rotPoints = [ points[0], points[1] ];
+	centerPoints = [ points[2], points[3] ];
 
-	for (var j = 0; j < 2; j++)
+	for (var i = 1; i <= Math.abs(rotAmount); i++)
 	{
+		var rotationValues;
 
-		var centerPoint = [ centerPoints[j][0], centerPoints[j][1] ],	// fill this
-			rotPoint = [ rotPoints[j][0], rotPoints[j][1] ],	// fill this
-			newCurrentAngle = currentAngle
-			;
-
-		
-		for (var i = 1; i <= Math.abs(rotAmount); i++)
+		if (rotAmount > 0)
 		{
+		currentAngle++;						
+		}
+		else 
+		{
+		currentAngle--;							
+		}
 
-			var rotationValues,
-				rotIndex,
-				rotCheck = [ indexOfItem(rotPoint[0], unsortedPointsX), indexOfItem(rotPoint[1], unsortedPointsY) ] 				// fix this: check for the X and Y
-			;
+		sliderAngle.setValueAtTime(convertFPSToTime(startFrame + i, fps), currentAngle);
 
-			if (newCurrentAngle > 360)
-			{
-				newCurrentAngle = newCurrentAngle - 360;
-			}
-			else if (newCurrentAngle < 0)
-			{
-				newCurrentAngle = 360 + newCurrentAngle;
-			}
-			else if (newCurrentAngle == 360)
-			{
-				newCurrentAngle = 0;
-			}
+		for (var j = 0; j < 2; j++)
+		{
+		rotationValues = moveDrawCenter(currentAngle, centerPoints[j], dist, isoDist, isoWidth, direction, planeHeight, direction);
+		newRotPoints[j] = rotatePointAroundCircle(rotationValues[0], dist, rotationValues[1], rotationValues[2]);			
+		}
 
-			if (rotCheck[0] == rotCheck[1])
-			{
-				rotIndex = rotCheck[0];
-			}
-			else if (countInArray(rotPoint[0], unsortedPointsX) == 2)
-			{
-				rotIndex = rotCheck[1];
-			}
-			else if (countInArray(rotPoint[1], unsortedPointsY) == 2)
-			{
-				rotIndex = rotCheck[0];
-			}
+		//alert(centerPoints);
+		vertsEnd[0].setValueAtTime(convertFPSToTime(startFrame + i, fps),newRotPoints[0]);
+		vertsEnd[1].setValueAtTime(convertFPSToTime(startFrame + i, fps),newRotPoints[1]);
+		vertsEnd[2].setValueAtTime(convertFPSToTime(startFrame + i, fps),centerPoints[0]);
+		vertsEnd[3].setValueAtTime(convertFPSToTime(startFrame + i, fps),centerPoints[1]);
 
-			//if (j == 1) {alert(centerPoints);}
+		// if currentAngle == 90, 180, etc, check verts
+		// after assigning the verts correctly, do rotations
 
-			rotationValues = moveCenterPoint(newCurrentAngle, centerPoints[j], dist, isoDist, isoWidth, direction, planeHeight, direction);
-
-			sliderAngle.setValueAtTime(convertFPSToTime(startFrame + i, fps), newCurrentAngle);
-			var tempRot = setRotPoints(0, rotationValues[0], dist, rotationValues[1], rotationValues[2])
-		
-			
-			vertsEnd[rotIndex].setValueAtTime(convertFPSToTime(startFrame + i, fps),tempRot);
-
-			if (rotAmount > 0)
-			{
-			newCurrentAngle++;						
-			}
-			else 
-			{
-			newCurrentAngle--;							
-			}
+		if (currentAngle > 360)
+		{
+			currentAngle = currentAngle - 360;
+		}
+		else if (currentAngle < 0)
+		{
+			currentAngle = 360 + currentAngle;
+		}
+		else if (currentAngle == 360)
+		{
+			currentAngle = 0;
 		}
 	}
 }
@@ -346,7 +181,7 @@ function convertFPSToTime(frame, targetFPS)
 	return convertedFPS;
 }
 
-function setRotPoints(direction, _centerPoint, _dist, _currentAngle,_mult)
+function rotatePointAroundCircle(drawCenter, _dist, _currentAngle, _mult)
 {
 	var endLocation = [ 0 , 0 ],
 		_rotPoint = [ 0 , 0 ],
@@ -355,8 +190,8 @@ function setRotPoints(direction, _centerPoint, _dist, _currentAngle,_mult)
 
 	_newCurrentAngle = degreesToRadians((_currentAngle - 90));
 	
-	_rotPoint[0] = _centerPoint[0] + (Math.cos(_newCurrentAngle) * (_dist * _mult));
-	_rotPoint[1] = _centerPoint[1] + (Math.sin(_newCurrentAngle) * (_dist * _mult));
+	_rotPoint[0] = drawCenter[0] + (Math.cos(_newCurrentAngle) * (_dist * _mult));
+	_rotPoint[1] = drawCenter[1] + (Math.sin(_newCurrentAngle) * (_dist * _mult));
 
 	return _rotPoint;
 }
@@ -387,7 +222,7 @@ function degreesToRadians(degrees)
 	return returnRadians;
 }
 
-function moveCenterPoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, axis, _planeHeight, _direction) // fix this: something to do with the centerPoint
+function moveDrawCenter(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth, _direction, _planeHeight, _direction) // fix this: something to do with the centerPoint
 {
 	var limitsX = [ [ 30, 90 ], [ 90, 210 ], [ 210, 270 ], [ 270, 390 ] ],
 		limitsY = [ [ -30, 90 ], [ 90, 150 ], [ 150, 270 ], [ 270, 330 ] ],
@@ -399,116 +234,115 @@ function moveCenterPoint(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth
 		multipliersXYZ = [ multX, multY, multZ ],
 		returnAngle = 0,
 		returnMult = 0,
-		returnCenterPoint = [ 0, 0 ]
+		returnDrawCenter = [ 0, 0 ]
 		;
 
 	if (_currentAngle < 90)
 	{
 		// returnAngle = currentAngle - 15;
-		returnAngle = reprojectAngle(_currentAngle, 0, 90, angleLimits[axis][0][0], angleLimits[axis][0][1]);
-		returnMult = multipliersXYZ[axis][0];
+		returnAngle = reprojectAngle(_currentAngle, 0, 90, angleLimits[_direction][0][0], angleLimits[_direction][0][1]);
+		returnMult = multipliersXYZ[_direction][0];
 
 		switch (_direction)
 		{
 			case 0:
-				returnCenterPoint[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)) + (.5 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] + _dist / 2;	
+				returnDrawCenter[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)) + (.5 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] + _dist / 2;	
 			break;
 		
 			case 1:
-				returnCenterPoint[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (1 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] - _dist / 2;
+				returnDrawCenter[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (1 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] - _dist / 2;
 			break;
 		
 			case 2:
-				returnCenterPoint[0] = _centerPoint[0]; //- (1 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] + _dist;
+				returnDrawCenter[0] = _centerPoint[0]; //- (1 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] + _dist;
 			break;		
 		}
 	}
 	else if (_currentAngle >= 90 && _currentAngle < 180)
 	{
-		returnAngle = reprojectAngle(_currentAngle, 90, 180, angleLimits[axis][1][0], angleLimits[axis][1][1]);						
-		returnMult = multipliersXYZ[axis][1];
+		returnAngle = reprojectAngle(_currentAngle, 90, 180, angleLimits[_direction][1][0], angleLimits[_direction][1][1]);						
+		returnMult = multipliersXYZ[_direction][1];
 
 		switch (_direction)
 		{
 			case 0:
-				returnCenterPoint[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (.5 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] + _dist / 2 - (.5 * _planeHeight);	
+				returnDrawCenter[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (.5 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] + _dist / 2 - (.5 * _planeHeight);	
 			break;
 		
 			case 1:
-				returnCenterPoint[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)); //- (1 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] - _dist / 2;
+				returnDrawCenter[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)); //- (1 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] - _dist / 2;
 			break;
 		
 			case 2:
-				returnCenterPoint[0] = _centerPoint[0] + ((_isoWidth * (1/3) * _planeHeight)); //- (1 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1];
+				returnDrawCenter[0] = _centerPoint[0] + ((_isoWidth * (1/3) * _planeHeight)); //- (1 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1];
 			break;	
 		}
 	}
 	else if (_currentAngle >= 180 && _currentAngle < 270)
 	{
-		returnAngle = reprojectAngle(_currentAngle, 180, 270, angleLimits[axis][2][0], angleLimits[axis][2][1]);
-		returnMult = multipliersXYZ[axis][2];
+		returnAngle = reprojectAngle(_currentAngle, 180, 270, angleLimits[_direction][2][0], angleLimits[_direction][2][1]);
+		returnMult = multipliersXYZ[_direction][2];
 
 		switch (_direction)
 		{
 			case 0:
-				returnCenterPoint[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)); //- (1 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] - (_dist / 2); // - (_isoDist * 2); // fix this: incorrectly placed rotation
+				returnDrawCenter[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)); //- (1 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] - (_dist / 2); // - (_isoDist * 2); // fix this: incorrectly placed rotation
 			break;
 		
 			case 1:
-				returnCenterPoint[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (.5 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] + _dist / 2 - (.5 * _planeHeight);	
+				returnDrawCenter[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (.5 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] + _dist / 2 - (.5 * _planeHeight);	
 			break;
 		
 			case 2:
-				returnCenterPoint[0] = _centerPoint[0]; //- (1 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] - _dist;
+				returnDrawCenter[0] = _centerPoint[0]; //- (1 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] - _dist;
 			break;
 				
 		}		
 	}
 	else if (_currentAngle >= 270 && _currentAngle < 360)					
 	{
-		returnAngle = reprojectAngle(_currentAngle, 270, 360, angleLimits[axis][3][0], angleLimits[axis][3][1]);
-		returnMult = multipliersXYZ[axis][3];
+		returnAngle = reprojectAngle(_currentAngle, 270, 360, angleLimits[_direction][3][0], angleLimits[_direction][3][1]);
+		returnMult = multipliersXYZ[_direction][3];
 		switch (_direction)
 		{
 			case 0:
-				returnCenterPoint[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (.5 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] - _dist / 2 - (.5 * _planeHeight);	
+				returnDrawCenter[0] = _centerPoint[0] - ((_isoWidth * (2/3) / 2) * (_planeHeight / 2)); //- (.5 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] - _dist / 2 - (.5 * _planeHeight);	
 			break;
 		
 			case 1:
-				returnCenterPoint[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)) + (.5 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1] + _dist / 2;	
+				returnDrawCenter[0] = _centerPoint[0] + ((_isoWidth * (2/3) / 2) * (_planeHeight / 2 * 3)) + (.5 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1] + _dist / 2;	
 			break;
 		
 			case 2:
-				returnCenterPoint[0] = _centerPoint[0] - ((_isoWidth * (1/3) * _planeHeight)); //- (1 * _planeHeight);
-				returnCenterPoint[1] = _centerPoint[1];
-			break;
-				
-		}	
+				returnDrawCenter[0] = _centerPoint[0] - ((_isoWidth * (1/3) * _planeHeight)); //- (1 * _planeHeight);
+				returnDrawCenter[1] = _centerPoint[1];
+			break;	
+		}
 				
 	}
 
 	
 
-	var returns = [ returnCenterPoint, returnAngle, returnMult ];
+	var returns = [ returnDrawCenter, returnAngle, returnMult ];
 	return returns;
 }
 
-function indexOfItem(item, array)
+function indexOfItem(item, array, _planeHeight)
 {
 	for (var i = 0; i < array.length; i++)
 	{
-		if (Math.abs(parseFloat(item) - parseFloat(array[i])) < 3)
+		if (Math.abs(parseFloat(item) - parseFloat(array[i])) < .3)
 		{
 			return i;
 		}
@@ -556,4 +390,203 @@ function descritizeVerts(verts, _isoDist, _isoWidth)
 		returnVerts.push(discreteVert);
 	}
 	return returnVerts;
+}
+
+function assignRotAndCenterPoints(_direction, _currentAngle, _vertsEnd, _centerPoints, _rotPoints, _sortedPointsX, _sortedPointsY, _unsortedPointsX, _unsortedPointsY, _planeHeight, _i, _startFrame, _fps)
+{
+	var returnRotPoints = [ [ 0, 0 ], [ 0, 0 ]],
+		returnCenterPoints = [ [ 0, 0 ], [ 0, 0 ]]
+		;
+
+	switch(_direction)
+	{
+		case 0:
+			if (_currentAngle == 0 || _currentAngle == 360)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];
+				returnCenterPoints[0][1] = _sortedPointsY[3];			
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[1],_unsortedPointsY)];
+				returnRotPoints[0][1] = _sortedPointsY[1];
+
+				returnCenterPoints[1][0] =	_unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY, _planeHeight)];		
+				returnCenterPoints[1][1] =  _sortedPointsY[2];
+				returnRotPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0], _unsortedPointsY)];
+				returnRotPoints[1][1] = _sortedPointsY[0];
+			}
+			if (_currentAngle == 90)
+			{
+				returnCenterPoints[0][0] = _sortedPointsX[0];			
+				returnCenterPoints[0][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[0], _unsortedPointsX, _planeHeight)];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3],_unsortedPointsY)];
+				returnRotPoints[0][1] = _sortedPointsY[3];
+
+
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0], _unsortedPointsY, _planeHeight)];			
+				returnCenterPoints[1][1] = _sortedPointsY[0];
+				returnRotPoints[1][0] = _sortedPointsX[3];	
+				returnRotPoints[1][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[3],_unsortedPointsX)];
+			
+			}
+			if (_currentAngle == 180)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[1],_unsortedPointsY)];
+				returnCenterPoints[0][1] = _sortedPointsY[1];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];
+				returnRotPoints[0][1] = _sortedPointsY[3];	
+
+				returnCenterPoints[1][1] = _sortedPointsY[0];
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0], _unsortedPointsY)];					
+				returnRotPoints[1][0] =	_unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY, _planeHeight)];		
+				returnRotPoints[1][1] =  _sortedPointsY[2];
+
+			}
+			if (_currentAngle == 270)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3],_unsortedPointsY)];
+				returnCenterPoints[0][1] = _sortedPointsY[3];
+				returnRotPoints[0][0] = _sortedPointsX[0];			
+				returnRotPoints[0][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[0], _unsortedPointsX, _planeHeight)];
+
+				returnCenterPoints[1][0] = _sortedPointsX[3];	
+				returnCenterPoints[1][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[3],_unsortedPointsX)];
+				returnRotPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0], _unsortedPointsY, _planeHeight)];			
+				returnRotPoints[1][1] = _sortedPointsY[0];
+			}
+
+			else 
+			{
+				_rotPoints[0] = _vertsEnd[0].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_rotPoints[1] = _vertsEnd[1].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_centerPoints[0] = _vertsEnd[2].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_centerPoints[1] = _vertsEnd[3].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+			}
+		break;
+
+		case 1:
+			if (_currentAngle == 0 || _currentAngle == 360)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY, _planeHeight)];
+				returnCenterPoints[0][1] = _sortedPointsY[2];			
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0],_unsortedPointsY)];
+				returnRotPoints[0][1] = _sortedPointsY[0];
+
+				returnCenterPoints[1][0] =	_unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];	
+				returnCenterPoints[1][1] =  _sortedPointsY[3];
+				returnRotPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[1], _unsortedPointsY)];
+				returnRotPoints[1][1] = _sortedPointsY[1];
+			}
+			if (_currentAngle == 90)
+			{
+				returnCenterPoints[0][0] = _sortedPointsX[0];			
+				returnCenterPoints[0][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[0], _unsortedPointsX, _planeHeight)];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0],_unsortedPointsY)];
+				returnRotPoints[0][1] = _sortedPointsY[0];
+
+
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];		
+				returnCenterPoints[1][1] = _sortedPointsY[3];
+				returnRotPoints[1][0] = _sortedPointsX[3];	
+				returnRotPoints[1][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[3],_unsortedPointsX)];
+			
+			}
+			if (_currentAngle == 180)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0],_unsortedPointsY)];
+				returnCenterPoints[0][1] = _sortedPointsY[0];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY, _planeHeight)];
+				returnRotPoints[0][1] = _sortedPointsY[2];	
+
+				returnCenterPoints[1][1] = _sortedPointsY[1];
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[1], _unsortedPointsY)];					
+				returnRotPoints[1][0] =	_unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];		// point 1 , X
+				returnRotPoints[1][1] =  _sortedPointsY[3];
+
+			}
+			if (_currentAngle == 270)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0],_unsortedPointsY)];
+				returnCenterPoints[0][1] = _sortedPointsY[0];
+				returnRotPoints[0][0] = _sortedPointsX[0];			// point 0 , X
+				returnRotPoints[0][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[0], _unsortedPointsX, _planeHeight)];
+
+				returnCenterPoints[1][0] = _sortedPointsX[3];	
+				returnCenterPoints[1][1] = _unsortedPointsY[indexOfItem(_sortedPointsX[3],_unsortedPointsX)];
+				returnRotPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];			// point 1 , X
+				returnRotPoints[1][1] = _sortedPointsY[3];
+			}
+
+			else 
+			{
+				_rotPoints[0] = _vertsEnd[0].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_rotPoints[1] = _vertsEnd[1].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_centerPoints[0] = _vertsEnd[2].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_centerPoints[1] = _vertsEnd[3].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+			}
+		break;
+
+		case 2:
+			if (_currentAngle == 0 || _currentAngle == 360)
+			{
+				returnCenterPoints[0][0] =	_unsortedPointsX[indexOfItem(_sortedPointsY[1], _unsortedPointsY, _planeHeight)];
+				returnCenterPoints[0][1] =  _sortedPointsY[1];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0], _unsortedPointsY)];
+				returnRotPoints[0][1] = _sortedPointsY[0];
+
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];
+				returnCenterPoints[1][1] = _sortedPointsY[3];			
+				returnRotPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY, _planeHeight)];
+				returnRotPoints[1][1] = _sortedPointsY[2];
+			}
+			if (_currentAngle == 90)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[1],_unsortedPointsY)];			
+				returnCenterPoints[0][1] = _sortedPointsY[1];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0],_unsortedPointsY)];
+				returnRotPoints[0][1] = _sortedPointsY[0];
+
+
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];		
+				returnCenterPoints[1][1] = _sortedPointsY[3];
+				returnRotPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY, _planeHeight)];	
+				returnRotPoints[1][1] = _sortedPointsY[2];
+			
+			}
+			if (_currentAngle == 180)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0],_unsortedPointsY)];
+				returnCenterPoints[0][1] = _sortedPointsY[0];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[1], _unsortedPointsY, _planeHeight)];
+				returnRotPoints[0][1] = _sortedPointsY[1];	
+
+				returnCenterPoints[1][1] = _sortedPointsY[2];
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY)];					
+				returnRotPoints[1][0] =	_unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];		// point 1 , X
+				returnRotPoints[1][1] =  _sortedPointsY[3];
+
+			}
+			if (_currentAngle == 270)
+			{
+				returnCenterPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[0],_unsortedPointsY)];
+				returnCenterPoints[0][1] = _sortedPointsY[0];
+				returnRotPoints[0][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[1],_unsortedPointsY)];			// point 0 , X
+				returnRotPoints[0][1] = _sortedPointsY[1];
+
+				returnCenterPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[2], _unsortedPointsY, _planeHeight)];		
+				returnCenterPoints[1][1] = _sortedPointsY[2];
+				returnRotPoints[1][0] = _unsortedPointsX[indexOfItem(_sortedPointsY[3], _unsortedPointsY, _planeHeight)];			// point 1 , X
+				returnRotPoints[1][1] = _sortedPointsY[3];
+			}
+
+			else 
+			{
+				_rotPoints[0] = _vertsEnd[0].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_rotPoints[1] = _vertsEnd[1].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_centerPoints[0] = _vertsEnd[2].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+				_centerPoints[1] = _vertsEnd[3].valueAtTime(convertFPSToTime(_startFrame + _i, _fps), true);
+			}
+		break;
+	}
+
+	var returnAllPoints = [ returnRotPoints[0], returnRotPoints[1], returnCenterPoints[0], returnCenterPoints[1] ];
+	return returnAllPoints;
 }
