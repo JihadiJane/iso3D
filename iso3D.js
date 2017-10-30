@@ -1,18 +1,6 @@
+var windowIso = new Window ("palette", "iso 3D"); 
 
-var mainComp = app.project.activeItem,  											// get the selected layer
-layerIndex = mainComp.selectedLayers[0].index,  								// grab index of selected layer
-layer = mainComp.layer(layerIndex),
-temp,
-fps = 24,
-isoWidth = 50,
-isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
-sliderAngle = layer.property("Effects").property("Slider Control").property("Slider"),
-timeControl = layer.property("Effects").property("Point Control").property("Point")
-;
-
-var windowAEFKR = new Window ("dialog", "AEFKR"); 											// create window
-
-var groupInput = windowAEFKR.add ("group");													// create input groups
+var groupInput = windowIso.add ("group");													// create input groups
 groupInput.orientation = "column";
 
 var groupPlaneHeight = groupInput.add ("group");
@@ -35,39 +23,79 @@ var current = File($.fileName).path;
 var iconPath = current + "/icon.jpg"; 
 groupIcon.add ("image", undefined, iconPath);
 
-var groupButtons = windowAEFKR.add ("group");
+var groupDiscrete = windowIso.add ("group");
+groupDiscrete.alignment = "left";
+var buttonDiscrete = groupDiscrete.add ("button", undefined, "snap to iso grid");
+
+var groupButtons = windowIso.add ("group");
 groupButtons.alignment = "right";
 var buttonOK = groupButtons.add ("button", undefined, "OK");
 var buttonCancel = groupButtons.add ("button", undefined, "Cancel");
 
-windowAEFKR.show();
+windowIso.show();
 
-app.beginUndoGroup("undo script");
-buttonOK.onClick = execute(groupInput);
-app.endUndoGroup();
+var mainComp = app.project.activeItem,  											// get the selected layer
+	layerIndex = mainComp.selectedLayers[0].index,  								// grab index of selected layer
+	layer = mainComp.layer(layerIndex),
+	temp,
+	fps = 24,
+	isoWidth = 50,
+	isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
+	vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
+			layer.property("Effects").property("Corner Pin").property("Upper Right"),
+			layer.property("Effects").property("Corner Pin").property("Lower Left"),
+			layer.property("Effects").property("Corner Pin").property("Lower Right"),
+			],
+	vertsStart = [vertsEnd[0].valueAtTime(mainComp.time,true), 
+				  vertsEnd[1].valueAtTime(mainComp.time,true),
+				  vertsEnd[2].valueAtTime(mainComp.time,true),
+				  vertsEnd[3].valueAtTime(mainComp.time,true),
+				  ]
+	;	
+
+buttonOK.onClick = function()
+{
+	layerIndex = mainComp.selectedLayers[0].index,  								// grab index of selected layer
+	layer = mainComp.layer(layerIndex),
+
+	app.beginUndoGroup("undo rotations");
+	execute(groupInput);
+	app.endUndoGroup();
+}
+
+buttonDiscrete.onClick = function()
+{
+	app.beginUndoGroup("undo discrete");
+
+	var discreteVerts =	descritizeVerts(vertsStart, isoDist, isoWidth);
+
+	for (var i = 0; i < 4; i++)
+	{
+		vertsEnd[i].setValueAtTime(mainComp.time, discreteVerts[i]);
+	}
+	app.endUndoGroup();
+}
+
+
+
+windowIso.show();
+
 
 //////////////////////////////////////////////////
 
 function execute()
 {
-	var startTime = mainComp.time,
-		startFrame = convertTimeToFPS(startTime, fps),
-		direction = parseInt(inputDir.text),
-		vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
-					layer.property("Effects").property("Corner Pin").property("Upper Right"),
-					layer.property("Effects").property("Corner Pin").property("Lower Left"),
-					layer.property("Effects").property("Corner Pin").property("Lower Right"),
-					],
-		vertsStart = [vertsEnd[0].valueAtTime(startTime,true), 
-					  vertsEnd[1].valueAtTime(startTime,true),
-					  vertsEnd[2].valueAtTime(startTime,true),
-					  vertsEnd[3].valueAtTime(startTime,true),
-					  ],
-		planeHeight = parseInt(inputHeight.text),
-		rotAmount = parseFloat(inputRot.text),
-		currentAngle = sliderAngle.valueAtTime(startTime, fps),
-		fixedVerts
-		;
+
+	var	sliderAngle = layer.property("Effects").property("Slider Control").property("Slider"),
+	timeControl = layer.property("Effects").property("Point Control").property("Point"),
+	startTime = mainComp.time,
+	startFrame = convertTimeToFPS(startTime, fps),
+	direction = parseInt(inputDir.text),
+	planeHeight = parseInt(inputHeight.text),
+	rotAmount = parseFloat(inputRot.text),
+	currentAngle = sliderAngle.valueAtTime(startTime, fps),
+	fixedVerts
+	;
 
 	if (currentAngle == 0 || currentAngle == 90 || currentAngle == 180 || currentAngle == 270 || currentAngle == 360) 
 		{
