@@ -4,19 +4,20 @@ var groupInput = windowIso.add ("group");													// create input groups
 groupInput.orientation = "column";
 
 var groupPlaneHeight = groupInput.add ("group");
-var planeHeightInput = groupPlaneHeight.add ("statictext", undefined, "plane height:");	
+var planeHeightInput = groupPlaneHeight.add ("statictext", undefined, "height:");	
 var inputHeight = groupPlaneHeight.add ("edittext", undefined, "int");
+var rotDirection = groupPlaneHeight.add ("statictext", undefined, "dir:");	
+var inputDir = groupPlaneHeight.add ("edittext", undefined, "xyz");		
 inputHeight.characters = 3;
-groupPlaneHeight.alignChildren = "left";	
+inputDir.characters = 2;
+groupPlaneHeight.alignChildren = "center";	
 
 var groupRot = groupInput.add ("group");
 var rotAmount = groupRot.add ("statictext", undefined, "rotate:");	
 var inputRot = groupRot.add ("edittext", undefined, "deg");													
-var rotDirection = groupRot.add ("statictext", undefined, "direction:");	
-var inputDir = groupRot.add ("edittext", undefined, "xyz");													
+var buttonOK = groupRot.add ("button", undefined, "ROTATE");											
 inputRot.characters = 2;
-inputDir.characters = 2;
-groupRot.alignChildren = "left";
+groupRot.alignChildren = "center";
 
 var groupIcon = groupInput.add("group");
 var current = File($.fileName).path;  
@@ -24,47 +25,78 @@ var iconPath = current + "/icon.jpg";
 groupIcon.add ("image", undefined, iconPath);
 
 var groupDiscrete = windowIso.add ("group");
-groupDiscrete.alignment = "left";
-var buttonDiscrete = groupDiscrete.add ("button", undefined, "snap to iso grid");
+groupDiscrete.alignment = "center";
+var buttonDiscrete = groupDiscrete.add ("button", undefined, "SNAP TO ISO");
 
-var groupButtons = windowIso.add ("group");
-groupButtons.alignment = "right";
-var buttonOK = groupButtons.add ("button", undefined, "OK");
-var buttonCancel = groupButtons.add ("button", undefined, "Cancel");
+var groupRemap = windowIso.add ("group");
+var remapText = groupRemap.add ("statictext", undefined, "range:");	
+var inputFrameRange = groupRemap.add ("edittext", undefined, "frames");
+inputFrameRange.characters = 4;	
+var buttonRemapTime = groupRemap.add ("button", undefined, "REMAP");
 
 windowIso.show();
 
 var mainComp = app.project.activeItem,  											// get the selected layer
-	layerIndex = mainComp.selectedLayers[0].index,  								// grab index of selected layer
+	layerIndex = mainComp.layer(1).index,  								// grab index of selected layer
 	layer = mainComp.layer(layerIndex),
 	temp,
 	fps = 24,
 	isoWidth = 50,
-	isoDist = Math.tan(degreesToRadians(30)) * isoWidth,
-	vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
-			layer.property("Effects").property("Corner Pin").property("Upper Right"),
-			layer.property("Effects").property("Corner Pin").property("Lower Left"),
-			layer.property("Effects").property("Corner Pin").property("Lower Right"),
-			],
-	vertsStart = [vertsEnd[0].valueAtTime(mainComp.time,true), 
-				  vertsEnd[1].valueAtTime(mainComp.time,true),
-				  vertsEnd[2].valueAtTime(mainComp.time,true),
-				  vertsEnd[3].valueAtTime(mainComp.time,true),
-				  ]
+	isoDist = Math.tan(degreesToRadians(30)) * isoWidth
 	;	
 
 buttonOK.onClick = function()
 {
-	layerIndex = mainComp.selectedLayers[0].index,  								// grab index of selected layer
-	layer = mainComp.layer(layerIndex),
+	layerIndex = mainComp.selectedLayers[0].index;  								// grab index of selected layer
+	layer = mainComp.layer(layerIndex);
+	vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
+			layer.property("Effects").property("Corner Pin").property("Upper Right"),
+			layer.property("Effects").property("Corner Pin").property("Lower Left"),
+			layer.property("Effects").property("Corner Pin").property("Lower Right")
+			];
+	vertsStart = [vertsEnd[0].valueAtTime(mainComp.time,true), 
+				  vertsEnd[1].valueAtTime(mainComp.time,true),
+				  vertsEnd[2].valueAtTime(mainComp.time,true),
+				  vertsEnd[3].valueAtTime(mainComp.time,true)
+				  ];
 
 	app.beginUndoGroup("undo rotations");
 	execute(groupInput);
 	app.endUndoGroup();
 }
 
+buttonRemapTime.onClick = function()
+{
+	var timeControl = layer.property("Effects").property("Point Control").property("Point");
+	
+	layerIndex = mainComp.selectedLayers[0].index;								// grab index of selected layer
+	layer = mainComp.layer(layerIndex);
+	vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
+				layer.property("Effects").property("Corner Pin").property("Upper Right"),
+				layer.property("Effects").property("Corner Pin").property("Lower Left"),
+				layer.property("Effects").property("Corner Pin").property("Lower Right")
+				];
+	alert("poop");
+	app.beginUndoGroup("undo remap");
+	remapTime(fps, parseInt(inputFrameRange.text));
+	app.endUndoGroup();
+}
+
 buttonDiscrete.onClick = function()
 {
+	layerIndex = mainComp.selectedLayers[0].index;								// grab index of selected layer
+	layer = mainComp.layer(layerIndex);
+	vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
+				layer.property("Effects").property("Corner Pin").property("Upper Right"),
+				layer.property("Effects").property("Corner Pin").property("Lower Left"),
+				layer.property("Effects").property("Corner Pin").property("Lower Right")
+				];
+	vertsStart = [vertsEnd[0].valueAtTime(mainComp.time,true), 
+				  vertsEnd[1].valueAtTime(mainComp.time,true),
+				  vertsEnd[2].valueAtTime(mainComp.time,true),
+				  vertsEnd[3].valueAtTime(mainComp.time,true)
+				  ];
+
 	app.beginUndoGroup("undo discrete");
 
 	var discreteVerts =	descritizeVerts(vertsStart, isoDist, isoWidth);
@@ -75,8 +107,6 @@ buttonDiscrete.onClick = function()
 	}
 	app.endUndoGroup();
 }
-
-
 
 windowIso.show();
 
@@ -122,7 +152,6 @@ function execute()
 		newCenterPoints = [[ 0, 0 ], [ 0, 0 ]],
 		newRotPoints = [[ 0, 0 ], [ 0, 0 ]],
 		tempPoints,
-		remapTime = timeControl.valueAtTime(startTime, fps),
 		dist = isoDist * planeHeight,
 		points
 		;
@@ -397,11 +426,11 @@ function descritizeVerts(verts, _isoDist, _isoWidth)
 	{
 		var discreteVert = [ verts[i][0], verts[i][1] ]
 		
-		if ((discreteVert[0] % (_isoWidth / 2)) > _isoWidth / 4)
+		if ((discreteVert[0] % (_isoWidth / 2)) > _isoWidth / 2)
 		{
 			discreteVert[0] = discreteVert[0] - (discreteVert[0] % (_isoWidth / 2)) + (_isoWidth / 2);
 		}
-		else if ((discreteVert[0] % (_isoWidth / 2)) < _isoWidth / 4)
+		else if ((discreteVert[0] % (_isoWidth / 2)) < _isoWidth / 2)
 		{
 			discreteVert[0] = verts[i][0] - (verts[i][0] % (_isoWidth / 2));
 		}
@@ -617,4 +646,67 @@ function assignRotAndCenterPoints(_direction, _currentAngle, _vertsEnd, _centerP
 
 	var returnAllPoints = [ returnRotPoints[0], returnRotPoints[1], returnCenterPoints[0], returnCenterPoints[1] ];
 	return returnAllPoints;
+}
+
+function remapTime(_fps, newRange)
+{
+	var timeIn = timeControl.keyTime(timeControl.selectedKeys[0]),
+		timeOut = timeControl.keyTime(timeControl.selectedKeys[1]),
+		timeRange = (timeOut - timeIn),
+		increment = timeRange / 15,
+		incrementedTime,
+		newFrameRange = newRange,
+		newValues = [],
+		curveValue
+		;
+		
+	incrementedTime = timeIn;
+
+	for (var i = 0; i < newFrameRange; i++)
+	{
+		var newVertValues = [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
+			curvedTime,
+			framesToDelete = []
+			;
+		curveValue = timeControl.valueAtTime(incrementedTime, true)[0];
+		curvedTime = timeRange * curveValue;
+
+		for (var v = 0; v < 4; v++)
+		{
+			newVertValues[v] = vertsEnd[v].valueAtTime(curvedTime, true);
+		}
+		newValues.push(newVertValues);
+
+		//alert(newValues.length);
+		incrementedTime += increment;
+	}
+
+
+
+	for (var i = convertTimeToFPS(timeIn, _fps); i <= convertTimeToFPS(timeOut, _fps); i++)
+	{
+		var keyIndex;
+		for (var v = 0; v < 4; v++)
+		{
+			keyIndex = vertsEnd[v].nearestKeyIndex(convertFPSToTime(i, _fps));
+			vertsEnd[v].removeKey(keyIndex);
+		}
+	}
+
+	for (var i = 0; i < newFrameRange; i++)
+	{
+		for (var v = 0; v < 4; v++)
+		{
+			vertsEnd[v].setValueAtTime((timeIn + convertFPSToTime(i, _fps)), newValues[i][v]);
+		}
+
+		if (i == newFrameRange - 1)
+		{
+			timeControl.removeKey(2);
+			timeControl.setValueAtTime((timeIn + convertFPSToTime(i, _fps)), [ 1, 0 ]);
+			timeControl.setValueAtTime(timeIn , [ 0, 0 ]);
+		}
+	}
+	alert(newValues);
+
 }
