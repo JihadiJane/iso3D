@@ -24,6 +24,11 @@ var current = File($.fileName).path;
 var iconPath = current + "/icon.jpg"; 
 groupIcon.add ("image", undefined, iconPath);
 
+var groupPalette = groupInput.add("group");
+var palettePath = current + "/iso_palette.jpg"; 
+groupPalette.add ("image", undefined, palettePath);
+
+
 var groupDiscrete = windowIso.add ("group");
 groupDiscrete.alignment = "center";
 var buttonDiscrete = groupDiscrete.add ("button", undefined, "SNAP TO ISO");
@@ -36,10 +41,7 @@ var buttonRemapTime = groupRemap.add ("button", undefined, "REMAP");
 
 windowIso.show();
 
-var mainComp = app.project.activeItem,  											// get the selected layer
-	layerIndex = mainComp.layer(1).index,  								// grab index of selected layer
-	layer = mainComp.layer(layerIndex),
-	temp,
+var temp,
 	fps = 24,
 	isoWidth = 50,
 	isoDist = Math.tan(degreesToRadians(30)) * isoWidth
@@ -47,38 +49,49 @@ var mainComp = app.project.activeItem,  											// get the selected layer
 
 buttonOK.onClick = function()
 {
-	layerIndex = mainComp.selectedLayers[0].index;  								// grab index of selected layer
-	layer = mainComp.layer(layerIndex);
+
+	var mainComp = app.project.activeItem;
+	layerIndex = mainComp.selectedLayers[0].index
+	layer = mainComp.layer(layerIndex)
+
+
+	if ()
 	vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
 			layer.property("Effects").property("Corner Pin").property("Upper Right"),
 			layer.property("Effects").property("Corner Pin").property("Lower Left"),
 			layer.property("Effects").property("Corner Pin").property("Lower Right")
-			];
+			],
 	vertsStart = [vertsEnd[0].valueAtTime(mainComp.time,true), 
 				  vertsEnd[1].valueAtTime(mainComp.time,true),
 				  vertsEnd[2].valueAtTime(mainComp.time,true),
 				  vertsEnd[3].valueAtTime(mainComp.time,true)
 				  ];
-
 	app.beginUndoGroup("undo rotations");
-	execute(groupInput);
+	execute(mainComp);
 	app.endUndoGroup();
 }
 
 buttonRemapTime.onClick = function()
 {
-	var timeControl = layer.property("Effects").property("Point Control").property("Point");
-	
-	layerIndex = mainComp.selectedLayers[0].index;								// grab index of selected layer
-	layer = mainComp.layer(layerIndex);
-	vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
-				layer.property("Effects").property("Corner Pin").property("Upper Right"),
-				layer.property("Effects").property("Corner Pin").property("Lower Left"),
-				layer.property("Effects").property("Corner Pin").property("Lower Right")
-				];
-	alert("poop");
+
+	var mainComp = app.project.activeItem,
+		layerIndex = mainComp.selectedLayers[0].index,								// grab index of selected layer
+		layer = mainComp.layer(layerIndex),
+		sliderAngle = layer.property("Effects").property("Slider Control").property("Slider"),
+		timeControl = layer.property("Effects").property("Point Control").property("Point"),
+		vertsEnd = [layer.property("Effects").property("Corner Pin").property("Upper Left"), 
+					layer.property("Effects").property("Corner Pin").property("Upper Right"),
+					layer.property("Effects").property("Corner Pin").property("Lower Left"),
+					layer.property("Effects").property("Corner Pin").property("Lower Right")
+					],
+		vertsStart = [vertsEnd[0].valueAtTime(mainComp.time,true), 
+			  vertsEnd[1].valueAtTime(mainComp.time,true),
+			  vertsEnd[2].valueAtTime(mainComp.time,true),
+			  vertsEnd[3].valueAtTime(mainComp.time,true)
+			  ];
+
 	app.beginUndoGroup("undo remap");
-	remapTime(fps, parseInt(inputFrameRange.text));
+	remapTime(fps, parseInt(inputFrameRange.text), timeControl, sliderAngle, vertsEnd);
 	app.endUndoGroup();
 }
 
@@ -113,34 +126,24 @@ windowIso.show();
 
 //////////////////////////////////////////////////
 
-function execute()
+function execute(_mainComp)
 {
 
 	var	sliderAngle = layer.property("Effects").property("Slider Control").property("Slider"),
 	timeControl = layer.property("Effects").property("Point Control").property("Point"),
-	startTime = mainComp.time,
+	startTime = _mainComp.time,
 	startFrame = convertTimeToFPS(startTime, fps),
 	direction = parseInt(inputDir.text),
 	planeHeight = parseInt(inputHeight.text),
 	rotAmount = parseFloat(inputRot.text),
-	currentAngle = sliderAngle.valueAtTime(startTime, fps),
-	fixedVerts
+	currentAngle = sliderAngle.valueAtTime(startTime, fps)
 	;
 
-	if (currentAngle == 0 || currentAngle == 90 || currentAngle == 180 || currentAngle == 270 || currentAngle == 360) 
-		{
-			fixedVerts = descritizeVerts(vertsStart, isoDist, isoWidth);
-		}
-	else 
-		{
-			fixedVerts = vertsStart;
-		}
-
-	var newPointValuesX = [fixedVerts[0][0], fixedVerts[1][0], fixedVerts[2][0], fixedVerts[3][0]],
-		newPointValuesY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], fixedVerts[3][1]],
-		unsortedPoints = [fixedVerts[0], fixedVerts[1], fixedVerts[2], fixedVerts[3]],
-		unsortedPointsX = [fixedVerts[0][0], fixedVerts[1][0], fixedVerts[2][0], fixedVerts[3][0]],
-		unsortedPointsY = [fixedVerts[0][1], fixedVerts[1][1], fixedVerts[2][1], fixedVerts[3][1]],
+	var newPointValuesX = [vertsStart[0][0], vertsStart[1][0], vertsStart[2][0], vertsStart[3][0]],
+		newPointValuesY = [vertsStart[0][1], vertsStart[1][1], vertsStart[2][1], vertsStart[3][1]],
+		unsortedPoints = [vertsStart[0], vertsStart[1], vertsStart[2], vertsStart[3]],
+		unsortedPointsX = [vertsStart[0][0], vertsStart[1][0], vertsStart[2][0], vertsStart[3][0]],
+		unsortedPointsY = [vertsStart[0][1], vertsStart[1][1], vertsStart[2][1], vertsStart[3][1]],
 		sortedPointsX = newPointValuesX,
 		sortedPointsY = newPointValuesY,
 		maxX = Math.max(newPointValuesX[0], newPointValuesX[1], newPointValuesX[2], newPointValuesX[3]),
@@ -158,7 +161,7 @@ function execute()
 
 	for (var i = 0; i < 4; i++)
 	{
-		vertsEnd[i].setValueAtTime(convertFPSToTime(startFrame, fps), fixedVerts[i]);		
+		vertsEnd[i].setValueAtTime(convertFPSToTime(startFrame, fps), vertsStart[i]);		
 	}
 
 	sliderAngle.setValueAtTime(convertFPSToTime(startFrame, fps), currentAngle);
@@ -197,7 +200,7 @@ function execute()
 		newRotPoints[j] = rotatePointAroundCircle(rotationValues[0], dist, rotationValues[1], rotationValues[2]);			
 		}
 
-		//alert(centerPoints);
+		
 		vertsEnd[0].setValueAtTime(convertFPSToTime(startFrame + i, fps),newRotPoints[0]);
 		vertsEnd[1].setValueAtTime(convertFPSToTime(startFrame + i, fps),newRotPoints[1]);
 		vertsEnd[2].setValueAtTime(convertFPSToTime(startFrame + i, fps),centerPoints[0]);
@@ -365,7 +368,7 @@ function moveDrawCenter(_currentAngle, _centerPoint, _dist, _isoDist, _isoWidth,
 				
 		}		
 	}
-	else if (_currentAngle >= 270 && _currentAngle < 360)					
+	else if (_currentAngle >= 270 && _currentAngle <= 360)					
 	{
 		returnAngle = reprojectAngle(_currentAngle, 270, 360, angleLimits[_direction][3][0], angleLimits[_direction][3][1]);
 		returnMult = multipliersXYZ[_direction][3];
@@ -648,65 +651,66 @@ function assignRotAndCenterPoints(_direction, _currentAngle, _vertsEnd, _centerP
 	return returnAllPoints;
 }
 
-function remapTime(_fps, newRange)
+function remapTime(_fps, newRange, _timeControl, _slider, _vertsEnd)
 {
-	var timeIn = timeControl.keyTime(timeControl.selectedKeys[0]),
-		timeOut = timeControl.keyTime(timeControl.selectedKeys[1]),
+	var timeIn = _timeControl.keyTime(_timeControl.selectedKeys[0]),
+		timeOut = _timeControl.keyTime(_timeControl.selectedKeys[1]),
 		timeRange = (timeOut - timeIn),
-		increment = timeRange / 15,
+		increment = timeRange / newRange,
 		incrementedTime,
 		newFrameRange = newRange,
-		newValues = [],
-		curveValue
+		newVertValues = [],
+		newAngleValues = [],
+		curveValue, 
+		angleValue
 		;
-		
+
 	incrementedTime = timeIn;
 
-	for (var i = 0; i < newFrameRange; i++)
+	for (var i = 0; i <= newFrameRange; i++)
 	{
-		var newVertValues = [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
+		var newVerts = [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
 			curvedTime,
 			framesToDelete = []
 			;
-		curveValue = timeControl.valueAtTime(incrementedTime, true)[0];
+		curveValue = _timeControl.valueAtTime(incrementedTime, true)[0];
 		curvedTime = timeRange * curveValue;
 
+		angleValue = _slider.valueAtTime(incrementedTime, true);
 		for (var v = 0; v < 4; v++)
 		{
-			newVertValues[v] = vertsEnd[v].valueAtTime(curvedTime, true);
+			newVerts[v] = _vertsEnd[v].valueAtTime(timeIn + curvedTime, true);
 		}
-		newValues.push(newVertValues);
-
-		//alert(newValues.length);
+		newVertValues.push(newVerts);
+		newAngleValues.push(angleValue);
 		incrementedTime += increment;
 	}
 
-
-
 	for (var i = convertTimeToFPS(timeIn, _fps); i <= convertTimeToFPS(timeOut, _fps); i++)
-	{
+	{	
 		var keyIndex;
 		for (var v = 0; v < 4; v++)
 		{
-			keyIndex = vertsEnd[v].nearestKeyIndex(convertFPSToTime(i, _fps));
-			vertsEnd[v].removeKey(keyIndex);
+			keyIndex = _vertsEnd[v].nearestKeyIndex(convertFPSToTime(i, _fps));
+			_vertsEnd[v].removeKey(keyIndex);
+
 		}
+		keyIndex = _slider.nearestKeyIndex(convertFPSToTime(i, _fps));
+		_slider.removeKey(keyIndex);
 	}
 
-	for (var i = 0; i < newFrameRange; i++)
+	for (var j = 0; j <= newFrameRange; j++)
 	{
+		_slider.setValueAtTime((timeIn + convertFPSToTime(j, _fps)), newAngleValues[j]);
 		for (var v = 0; v < 4; v++)
 		{
-			vertsEnd[v].setValueAtTime((timeIn + convertFPSToTime(i, _fps)), newValues[i][v]);
+			_vertsEnd[v].setValueAtTime((timeIn + convertFPSToTime(j, _fps)), newVertValues[j][v]);
 		}
-
-		if (i == newFrameRange - 1)
+		if (j == newFrameRange)
 		{
-			timeControl.removeKey(2);
-			timeControl.setValueAtTime((timeIn + convertFPSToTime(i, _fps)), [ 1, 0 ]);
-			timeControl.setValueAtTime(timeIn , [ 0, 0 ]);
+			_timeControl.removeKey(2);
+			_timeControl.setValueAtTime((timeIn + convertFPSToTime(j, _fps)), [ 1, 0 ]);
+			_timeControl.setValueAtTime(timeIn , [ 0, 0 ]);
 		}
-	}
-	alert(newValues);
-
+	}	
 }
